@@ -110,3 +110,37 @@ jobs:
             ${{ github.workspace }}/*.deb
             ${{ github.workspace }}/*.ddeb
             ${{ github.workspace }}/*.tar.xz
+
+  publish-latest:
+    name: Publicar última versão 📦
+    if: github.ref_type == 'branch' && (github.ref_name == 'main' || github.ref_name == 'master')
+    runs-on: ubuntu-24.04
+    needs: build-project
+    permissions:
+      contents: write
+    steps:
+      - name: Baixar arquivos do build 📥
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Separar instalador e zip 🗂️
+        run: |
+          mkdir -p dist
+          find artifacts -type f \( -name '*-instalador.exe' -o -name '*-windows-x64.zip' \) -exec cp {} dist/ \;
+          ls -la dist
+          test -n "$(ls dist/*.exe 2>/dev/null)"
+
+      - name: Atualizar release "ultima-versao" 🛫
+        uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564
+        with:
+          tag_name: ultima-versao
+          target_commitish: ${{ github.sha }}
+          name: Painel de Cenas (última versão)
+          body: |
+            Última versão compilada a partir da branch main (commit ${{ github.sha }}).
+
+            **Como instalar:** feche o OBS, baixe o arquivo `obs-painel-cenas-...-windows-x64-instalador.exe` abaixo e execute. Depois abra o OBS e ative em **Painéis › Painel de Cenas**.
+          prerelease: false
+          make_latest: true
+          files: dist/*
